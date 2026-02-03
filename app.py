@@ -11,7 +11,7 @@ st.set_page_config(page_title="OUR 급여관리", layout="wide")
 st.title("🍞 OUR 베이커리 급여 입력")
 
 # 👇 [중요] ID는 그대로 두세요!
-SHEET_ID = "1gM... (아까 넣으신 ID 그대로)" 
+SHEET_ID = "1v9CjGC5kTERXxTLZS5zmD09fEPrJiEPCuJX1FAnD1wI" 
 
 # 시간 선택지 (06:00 ~ 02:00)
 TIME_OPTIONS = [""] 
@@ -166,3 +166,4 @@ if applied:
     msg.success("완료!")
     time.sleep(1)
     st.rerun()
+
