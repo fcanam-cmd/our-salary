@@ -1,17 +1,19 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from google.oauth2.service_account import Credentials # [변경] 최신 부품 사용
+from google.oauth2.service_account import Credentials
 import time
 
 # ==========================================
-# 1. 구글 시트 연결 설정 (최신 V4 방식)
+# 1. 구글 시트 연결 설정 (ID 접속 방식)
 # ==========================================
 st.set_page_config(page_title="OUR 급여관리(실시간)", layout="wide")
 st.title("🍞 OUR 베이커리 급여 입력 (구글연동)")
 
+# 👇 [중요] 여기에 아까 복사한 ID를 붙여넣으세요!
+SHEET_ID = "1v9CjGC5kTERXxTLZS5zmD09fEPrJiEPCuJX1FAnD1wI" 
+
 def connect_to_gsheet():
-    # [변경] 구글 시트 주소를 최신 버전(V4)으로 변경
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
@@ -19,27 +21,27 @@ def connect_to_gsheet():
     try:
         # Secrets에서 키 정보 가져오기
         key_dict = dict(st.secrets["gcp_service_account"])
-        
-        # [변경] 최신 방식(google-auth)으로 로그인
         creds = Credentials.from_service_account_info(key_dict, scopes=scopes)
         client = gspread.authorize(creds)
         
-        # 파일 열기
-        sh = client.open('OUR_급여장부_2월')
+        # [변경] 이름(open) 대신 ID(open_by_key)로 접속 -> 훨씬 안정적!
+        sh = client.open_by_key(SHEET_ID)
         return sh
     except Exception as e:
-        st.error(f"⚠️ 연결 오류! 설정을 확인해주세요.\n에러내용: {e}")
+        st.error(f"⚠️ 연결 오류! ID를 잘못 넣었거나 권한이 없습니다.\n에러내용: {e}")
         st.stop()
 
 sh = connect_to_gsheet()
+
+# 워크시트 연결
 try:
     worksheet = sh.worksheet("근무표(입력)")
 except:
-    st.error("시트 이름을 찾을 수 없습니다. '근무표(입력)' 탭이 있는지 확인하세요.")
+    st.error("시트 이름을 찾을 수 없습니다. 엑셀 아래쪽 탭 이름이 '근무표(입력)'인지 확인하세요.")
     st.stop()
 
 # ==========================================
-# 2. 데이터 처리 및 화면 구성 (이하 동일)
+# 2. 데이터 처리 및 화면 구성
 # ==========================================
 all_values = worksheet.get_all_values()
 df = pd.DataFrame(all_values)
