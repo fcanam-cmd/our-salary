@@ -3,7 +3,7 @@ import pandas as pd
 import openpyxl
 from datetime import datetime, time
 import io
-import time # 화면 새로고침용
+import time as tm # 충돌 방지를 위해 이름 변경
 
 # ==========================================
 # 1. 기본 설정
@@ -21,7 +21,7 @@ if "wb" not in st.session_state:
     try:
         st.session_state.wb = openpyxl.load_workbook(FILE_NAME, data_only=False)
     except:
-        st.error(f"폴더에 '{FILE_NAME}' 파일이 없습니다.")
+        st.error(f"폴더에 '{FILE_NAME}' 파일이 없습니다. 파일 이름을 확인해주세요.")
         st.stop()
 
 wb = st.session_state.wb
@@ -51,6 +51,7 @@ if df is None:
 # 직원 목록 (집계표 Y열)
 def get_employees(sheet_obj):
     names = set()
+    # Y열(25열) 3행~100행
     for r in range(3, 101):
         val = sheet_obj.cell(row=r, column=25).value 
         if val and str(val).strip() != "":
@@ -79,15 +80,14 @@ if not date_options:
     st.stop()
 
 # ==========================================
-# 4. 날짜 선택 및 현재 현황 보여주기 (New!)
+# 4. 날짜 선택 및 현재 현황 보여주기
 # ==========================================
 selected_label = st.selectbox("📅 날짜 선택", date_options)
 target_row = date_row_map[selected_label]
 
-# --- [여기서부터가 새로 추가된 확인 기능입니다] ---
-st.info(f"👇 **{selected_label}** 현재 저장된 근무자 명단입니다. (틀렸다면 아래에서 수정하세요)")
+# --- 현재 저장된 근무자 명단 (표) ---
+st.info(f"👇 **{selected_label}** 현재 저장된 근무자 명단입니다.")
 
-# 현재 엑셀에 저장된 내용을 읽어서 표로 만들기
 current_status = []
 slot_configs = [
     {"name": "타임 1 (오전)", "col": 3},
@@ -99,13 +99,12 @@ slot_configs = [
 
 for slot in slot_configs:
     base = slot["col"]
-    # 엑셀 값 읽기
     c_name = sheet.cell(row=target_row, column=base).value
     c_start = sheet.cell(row=target_row, column=base+1).value
     c_end = sheet.cell(row=target_row, column=base+2).value
     
-    if c_name: # 이름이 있는 경우만 표에 추가
-        # 시간 예쁘게 표시
+    if c_name: 
+        # 시간 표시 포맷팅
         s_str = c_start.strftime("%H:%M") if isinstance(c_start, (datetime, time)) else str(c_start)
         e_str = c_end.strftime("%H:%M") if isinstance(c_end, (datetime, time)) else str(c_end)
         
@@ -116,11 +115,11 @@ for slot in slot_configs:
             "퇴근": e_str
         })
 
-# 데이터가 있으면 표로 보여주고, 없으면 없다고 표시
 if current_status:
+    # 표 그리기
     st.dataframe(pd.DataFrame(current_status), use_container_width=True, hide_index=True)
 else:
-    st.write("🚫 **현재 등록된 근무자가 없습니다.** 아래에서 입력해주세요.")
+    st.write("🚫 현재 등록된 근무자가 없습니다.")
 
 st.markdown("---")
 
@@ -138,7 +137,7 @@ with st.form("input_form"):
         col_ui = cols[idx % 2]
         base = slot["col"]
         
-        # 엑셀 값 읽기 (수정 모드이므로 현재 값을 기본값으로)
+        # 엑셀 값 읽기
         curr_name = sheet.cell(row=target_row, column=base).value
         curr_s = sheet.cell(row=target_row, column=base+1).value
         curr_e = sheet.cell(row=target_row, column=base+2).value
@@ -149,7 +148,6 @@ with st.form("input_form"):
             return None
 
         with col_ui:
-            # 값이 있으면 펼쳐서 보여줌
             is_expanded = (curr_name is not None)
             with st.expander(f"{slot['name']}", expanded=is_expanded):
                 
@@ -159,6 +157,7 @@ with st.form("input_form"):
                 if curr_name and str(curr_name) in employee_list:
                     def_idx = list_opts.index(str(curr_name))
                 
+                # 고유 키 생성
                 unique_key_sel = f"sel_{base}_{selected_label}"
                 unique_key_txt = f"txt_{base}_{selected_label}"
                 unique_key_s = f"s_{base}_{selected_label}"
@@ -193,7 +192,7 @@ with st.form("input_form"):
     applied = st.form_submit_button("✅ 저장 및 반영하기", use_container_width=True)
 
 # ==========================================
-# 6. 저장 로직 (자동 새로고침 기능 추가)
+# 6. 저장 로직
 # ==========================================
 if applied:
     # 신규 직원 등록
@@ -219,8 +218,8 @@ if applied:
             sheet.cell(row=target_row, column=base+2).value = None
             
     st.success("저장되었습니다! 화면을 갱신합니다...")
-    time.sleep(1) # 1초 대기 후
-    st.rerun() # 화면 새로고침! (이제 위쪽 표가 바뀐 내용으로 뜹니다)
+    tm.sleep(1) # 1초 대기 (여기가 수정됨!)
+    st.rerun()
 
 # ==========================================
 # 7. 다운로드
