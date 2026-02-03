@@ -1,26 +1,34 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials # [변경] 최신 부품 사용
 import time
 
 # ==========================================
-# 1. 구글 시트 연결 설정 (보안 강화 버전)
+# 1. 구글 시트 연결 설정 (최신 V4 방식)
 # ==========================================
 st.set_page_config(page_title="OUR 급여관리(실시간)", layout="wide")
 st.title("🍞 OUR 베이커리 급여 입력 (구글연동)")
 
 def connect_to_gsheet():
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    # [변경] 구글 시트 주소를 최신 버전(V4)으로 변경
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
     try:
-        # [변경점] Streamlit Secrets(금고)에서 키 정보를 가져옵니다
+        # Secrets에서 키 정보 가져오기
         key_dict = dict(st.secrets["gcp_service_account"])
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, scope)
+        
+        # [변경] 최신 방식(google-auth)으로 로그인
+        creds = Credentials.from_service_account_info(key_dict, scopes=scopes)
         client = gspread.authorize(creds)
+        
+        # 파일 열기
         sh = client.open('OUR_급여장부_2월')
         return sh
     except Exception as e:
-        st.error(f"⚠️ 연결 오류! Streamlit 설정에 키가 등록되지 않았습니다.\n에러내용: {e}")
+        st.error(f"⚠️ 연결 오류! 설정을 확인해주세요.\n에러내용: {e}")
         st.stop()
 
 sh = connect_to_gsheet()
@@ -31,7 +39,7 @@ except:
     st.stop()
 
 # ==========================================
-# 2. 데이터 처리 및 화면 구성
+# 2. 데이터 처리 및 화면 구성 (이하 동일)
 # ==========================================
 all_values = worksheet.get_all_values()
 df = pd.DataFrame(all_values)
