@@ -169,3 +169,4 @@ if applied:
     status_msg.success("✅ 저장 완료!")
     time.sleep(1)
     st.rerun()
+
